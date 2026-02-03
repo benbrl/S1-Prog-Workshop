@@ -1,5 +1,8 @@
 #include <sil/sil.hpp>
 #include "random.hpp"
+#include <iostream>
+#include <format>
+#include <numbers>
 
 void keep_green_only(sil::Image &image)
 {
@@ -157,17 +160,21 @@ void Disque(sil::Image &image)
     {
         for (int y{0}; y < image.height(); y++)
         {
-            if (sqrt(std::pow((center_x - x), 2) + std::pow((center_y - y), 2)) < raduis)
+
+            if (center_x > 0 && center_x < image.width())
             {
-                image.pixel(x, y).r = 1.f;
-                image.pixel(x, y).g = 1.f;
-                image.pixel(x, y).b = 1.f;
-            }
-            else
-            {
-                image.pixel(x, y).r = 0.f;
-                image.pixel(x, y).g = 0.f;
-                image.pixel(x, y).b = 0.f;
+                if (sqrt(std::pow((center_x - x), 2) + std::pow((center_y - y), 2)) < raduis)
+                {
+                    image.pixel(x, y).r = 1.f;
+                    image.pixel(x, y).g = 1.f;
+                    image.pixel(x, y).b = 1.f;
+                }
+                else
+                {
+                    image.pixel(x, y).r = 0.f;
+                    image.pixel(x, y).g = 0.f;
+                    image.pixel(x, y).b = 0.f;
+                }
             }
         }
     }
@@ -200,114 +207,208 @@ void cercle(sil::Image &image)
     }
 }
 
-void Disque_gif(sil::Image &image)
+void Disque_gif(sil::Image &image, int count)
 {
     int raduis = {100};
     float cercle = 2 * 3.14 * raduis;
-    int center_x = image.width() / 2;
+    int center_x = count;
     int center_y = image.height() / 2;
 
     for (int x{0}; x < image.width(); x++)
     {
         for (int y{0}; y < image.height(); y++)
         {
+
             if (sqrt(std::pow((center_x - x), 2) + std::pow((center_y - y), 2)) < raduis)
             {
-                image.pixel(x-50, y).r = 1.f;
-                image.pixel(x-50, y).g = 1.f;
-                image.pixel(x-50, y).b = 1.f;
+                image.pixel(x, y).r = 1.f;
+                image.pixel(x, y).g = 1.f;
+                image.pixel(x, y).b = 1.f;
             }
             else
             {
-                image.pixel(x-50, y).r = 0.f;
-                image.pixel(x-50, y).g = 0.f;
-                image.pixel(x-50, y).b = 0.f;
+                image.pixel(x, y).r = 0.f;
+                image.pixel(x, y).g = 0.f;
+                image.pixel(x, y).b = 0.f;
             }
         }
     }
 }
 
+void new_cercle(sil::Image &image, int center_x, int center_y, int raduis, int thickness)
+{
+
+    for (int x{0}; x < image.width(); x++)
+    {
+        for (int y{0}; y < image.height(); y++)
+        {
+            if (sqrt(std::pow((center_x - x), 2) + std::pow((center_y - y), 2)) < raduis && sqrt(std::pow((center_x - x), 2) + std::pow((center_y - y), 2)) > raduis - thickness)
+            {
+                image.pixel(x, y).r = 1.f;
+                image.pixel(x, y).g = 1.f;
+                image.pixel(x, y).b = 1.f;
+            }
+        }
+    }
+}
+
+void Rosace(sil::Image &image)
+{
+    int raduis = {100};
+    float cercle = 2 * 3.14 * raduis;
+    int center_x = image.width() / 2;
+    int center_y = image.height() / 2;
+
+    int nb_rosace = 10;
+
+    // postion_rosace
+
+    float angle = 360 / nb_rosace;
+
+    for (int i = {0}; i < nb_rosace; i++)
+    {
+        float angle_rad = (3.14 / 180) * angle * i;
+        float position_x_rosace = cos(angle_rad) * raduis + center_x;
+        float position_y_rosace = sin(angle_rad) * raduis + center_y;
+        new_cercle(image, position_x_rosace, position_y_rosace, raduis, 10);
+    }
+
+    new_cercle(image, center_x, center_y, raduis, 10);
+}
+
+void Mosaique(sil::Image &image)
+{
+    int nb_repetition = 5;
+
+    int new_image_width = image.width() * nb_repetition;
+    int new_image_height = image.height() * nb_repetition;
+
+    sil::Image new_image{new_image_width, new_image_height};
+
+    for (int i = {0}; i < nb_repetition; i++)
+    {
+
+        for (int j = {0}; j < nb_repetition; j++)
+        {
+            for (int x{0}; x < image.width(); x++)
+            {
+                int new_x = x + image.width() * j;
+                for (int y{0}; y < image.height(); y++)
+                {
+
+                    int new_y = y + image.height() * i;
+                    new_image.pixel(new_x, new_y) = image.pixel(x, y);
+                }
+            }
+        }
+    }
+
+    image = new_image;
+}
+
 int main()
 {
+        {
+            sil::Image image{"images/logo.png"};
+            // TODO: modifier l'image
+            image.save("output/pouet.png");
+        }
+        {
+            sil::Image image{"images/logo.png"};
+            keep_green_only(image);
+            image.save("output/keep_green_only.png");
+        }
+        {
+            sil::Image image{"images/logo.png"};
+            black_and_white(image);
+            image.save("output/black_and_white.png");
+        }
+        {
+            sil::Image image{"images/logo.png"};
+            negatif(image);
+            image.save("output/negatif.png");
+        }
+        {
+            sil::Image image{300 /*width*/, 200 /*height*/};
+            degrade(image);
+            image.save("output/degrade.png");
+        }
+        {
+            sil::Image image{"images/logo.png"};
+            negatif(image);
+            image.save("output/negatif.png");
+        }
+        {
+            sil::Image image{"images/logo.png"};
+            miroir(image);
+            image.save("output/miroir.png");
+        }
+
+        {
+            sil::Image image{"images/logo.png"};
+            noise_image(image);
+            image.save("output/noise_image.png");
+        }
+
+        {
+            sil::Image image{"images/logo.png"};
+            rotate_90(image);
+            image.save("output/rotate_90.png");
+        }
+
+        {
+            sil::Image image{"images/logo.png"};
+            RGB_split(image);
+            image.save("output/RGB_split.png");
+        }
+
+        {
+            sil::Image image{"images/photo.jpg"};
+            Luminosite_eclaircir(image);
+             Luminosite_assombrir(image);
+            image.save("output/Luminosite.jpg");
+        }
+
+        {
+            sil::Image image{"images/photo.jpg"};
+            Luminosite_eclaircir(image);
+            Luminosite_assombrir(image);
+            image.save("output/Luminosite.jpg");
+        }
+
+        {
+            sil::Image image{500 /*width*/, 500 /*height*/};
+            Disque(image);
+            image.save("output/Disque.jpg");
+        }
+
     {
-        sil::Image image{"images/logo.png"};
-        // TODO: modifier l'image
-        image.save("output/pouet.png");
-    }
-    {
-        sil::Image image{"images/logo.png"};
-        keep_green_only(image);
-        image.save("output/keep_green_only.png");
-    }
-    {
-        sil::Image image{"images/logo.png"};
-        black_and_white(image);
-        image.save("output/black_and_white.png");
-    }
-    {
-        sil::Image image{"images/logo.png"};
-        negatif(image);
-        image.save("output/negatif.png");
-    }
-    {
-        sil::Image image{300 /*width*/, 200 /*height*/};
-        degrade(image);
-        image.save("output/degrade.png");
-    }
-    {
-        sil::Image image{"images/logo.png"};
-        negatif(image);
-        image.save("output/negatif.png");
-    }
-    {
-        sil::Image image{"images/logo.png"};
-        miroir(image);
-        image.save("output/miroir.png");
+        sil::Image image{500 /*width*/, 500 /*height*/};
+        cercle(image);
+        image.save("output/cercle.png");
     }
 
     {
-        sil::Image image{"images/logo.png"};
-        noise_image(image);
-        image.save("output/noise_image.png");
-    }
+        int square_size = 500;
+        sil::Image image{square_size /*width*/, square_size /*height*/};
 
-    {
-        sil::Image image{"images/logo.png"};
-        rotate_90(image);
-        image.save("output/rotate_90.png");
-    }
-
-    {
-        sil::Image image{"images/logo.png"};
-        RGB_split(image);
-        image.save("output/RGB_split.png");
-    }
-
-    {
-        sil::Image image{"images/photo.jpg"};
-        Luminosite_eclaircir(image);
-         Luminosite_assombrir(image);
-        image.save("output/Luminosite.jpg");
-    }
-
-    {
-        sil::Image image{"images/photo.jpg"};
-        Luminosite_eclaircir(image);
-        Luminosite_assombrir(image);
-        image.save("output/Luminosite.jpg");
+        for (int count = {0}; count < square_size; count++)
+        {
+            Disque_gif(image, count);
+            std::string path = std::format("output/gif_disque/Disque_gif_{}.png", count);
+            image.save(path);
+        }
     }
 
     {
         sil::Image image{500 /*width*/, 500 /*height*/};
-        Disque(image);
-        image.save("output/Disque.jpg");
+        Rosace(image);
+        image.save("output/Rosace.png");
     }
 
     {
-        sil::Image image{500 /*width*/, 500 /*height*/};
-        Disque_gif(image);
-        image.save("output/gif_disque/Disque_gif.jpg");
-
-        //std format
+        sil::Image image{"images/logo.png"};
+        Mosaique(image);
+        image.save("output/Mosaique.png");
     }
 }
