@@ -3,6 +3,8 @@
 #include <iostream>
 #include <format>
 #include <numbers>
+#include <algorithm>
+#include <complex>
 
 void keep_green_only(sil::Image &image)
 {
@@ -306,109 +308,308 @@ void Mosaique(sil::Image &image)
     image = new_image;
 }
 
+void Mosaique_miroir(sil::Image &image)
+{
+    int nb_repetition = 5;
+
+    int new_image_width = image.width() * nb_repetition;
+    int new_image_height = image.height() * nb_repetition;
+
+    sil::Image new_image{new_image_width, new_image_height};
+
+    for (int i = {0}; i < nb_repetition; i++)
+    {
+        for (int j = {0}; j < nb_repetition; j++)
+        {
+            for (int y = {0}; y < image.height(); y++)
+            {
+                for (int x = {0}; x < image.width(); x++)
+                {
+                    int image_x = x;
+                    int image_y = y;
+
+                    if (j % 2 == 1)
+                    {
+                        image_x = image.width() - 1 - x;
+                    }
+
+                    if (i % 2 == 1)
+                    {
+                        image_y = image.height() - 1 - y;
+                    }
+
+                    int new_x = x + j * image.width();
+                    int new_y = y + i * image.height();
+
+                    new_image.pixel(new_x, new_y) = image.pixel(image_x, image_y);
+                }
+            }
+        }
+    }
+
+    image = new_image;
+}
+
+void Glitch(sil::Image &image)
+{
+    int iteration = random_int(10, 30);
+
+    /// faire deux rectangles et les swaps normalement la team c'est ça
+    for (int j = {0}; j < iteration; j++)
+    {
+
+        int height = random_int(1, 20);
+        int width = random_int(1, 40);
+        int random_x = random_int(1, image.height() - height);
+        int random_y = random_int(1, image.width() - width);
+
+        if (random_x + width < image.width() - width && random_y + height < image.height() - height)
+        {
+            for (int x{0}; x < width; x++)
+            {
+                for (int y{0}; y < height; y++)
+                {
+                    std::swap(image.pixel((random_x + x), (random_y + y)), image.pixel(random_x + x + width, random_x + y + height));
+                }
+            }
+        }
+    }
+}
+
+float brightness(glm::vec3 const &color)
+{
+    float moyenne = color.r * 0.2126f + color.g * 0.7152f + color.b * 0.0722f;
+    return moyenne;
+}
+
+void Tri_pixels(sil::Image &image)
+{
+    int random = random_int(300, 400);
+
+    for (int i = 0; i < random; i++)
+    {
+
+        int size_x = random_int(20, 45);
+        int x_begin = random_int(0, image.width() - size_x);
+        // int x_end = random_int(10, image.width() - size_x); /// clacluel le. omvre dnas le talbeau
+
+        // on vuet jsute savir usr quelle ligne le u vuet etre
+        int y = random_int(10, image.height());
+
+        std::vector<glm::vec3> vecteur;
+        for (int x = x_begin; x < size_x + x_begin; x++)
+        {
+            glm::vec3 pixel = image.pixel(x, y);
+            vecteur.push_back(pixel);
+        }
+
+        // std::cout << vecteur.size() << std::endl;
+
+        std::sort(vecteur.begin(), vecteur.end(),
+                  [](glm::vec3 const &color1, glm::vec3 const &color2)
+                  {
+                      // std::cout << "bonjour" << std::endl;
+                      return brightness(color1) < brightness(color2);
+                  });
+
+        for (int x = x_begin; x < size_x + x_begin; x++)
+        {
+            image.pixel(x, y) = vecteur.at(x - x_begin);
+        }
+    }
+}
+
+void fractal(sil::Image &image)
+{
+    int iteration = 19;
+    for (int x = 0; x < image.width(); x++)
+    {
+        for (int y = 0; y < image.height(); y++)
+        {
+            float xx = static_cast<float>(x * 4) / image.width() - 2;
+            float yy = static_cast<float>(y * 4) / image.height() - 2;
+            // std::cout << xx << ' ' << yy << std::endl;
+            std::complex<float> z{0.f, 0.f};
+            std::complex<float> c{xx, yy};
+            bool is_fractal = false;
+            float color;
+            for (int i{0}; i < iteration; ++i)
+            {
+                z = z * z + c;
+                color = static_cast<float>(i * 1) / 20;
+                std::cout << color << std::endl;
+                if (std::abs(z) > 2)
+                {
+                    is_fractal = true;
+
+                    break;
+                }
+            }
+
+            if (is_fractal)
+            {
+
+                image.pixel(x, y) = glm::vec3{color};
+            }
+            else
+            {
+                image.pixel(x, y) = glm::vec3{1.f};
+            }
+        }
+    }
+}
+
+void degradeLab(sil::Image &image)
+{
+    for (int y = 0; y < image.height(); y++)
+    {
+
+        for (int x = 0; x < image.width(); x++)
+        {
+            float t = static_cast<float>(y / image.width());
+            glm::vec3 color = glm::mix(
+                glm::vec3(0.0f, 1.0f, 0.0f),
+                glm::vec3(1.0f, 0.0f, 0.0f),
+                t);
+
+            image.pixel(x, y) = color;
+        }
+    }
+}
+
 int main()
 {
-        {
-            sil::Image image{"images/logo.png"};
-            // TODO: modifier l'image
-            image.save("output/pouet.png");
-        }
-        {
-            sil::Image image{"images/logo.png"};
-            keep_green_only(image);
-            image.save("output/keep_green_only.png");
-        }
-        {
-            sil::Image image{"images/logo.png"};
-            black_and_white(image);
-            image.save("output/black_and_white.png");
-        }
-        {
-            sil::Image image{"images/logo.png"};
-            negatif(image);
-            image.save("output/negatif.png");
-        }
-        {
-            sil::Image image{300 /*width*/, 200 /*height*/};
-            degrade(image);
-            image.save("output/degrade.png");
-        }
-        {
-            sil::Image image{"images/logo.png"};
-            negatif(image);
-            image.save("output/negatif.png");
-        }
-        {
-            sil::Image image{"images/logo.png"};
-            miroir(image);
-            image.save("output/miroir.png");
-        }
+    // {
+    //     sil::Image image{"images/logo.png"};
+    //     // TODO: modifier l'image
+    //     image.save("output/pouet.png");
+    // }
+    // {
+    //     sil::Image image{"images/logo.png"};
+    //     keep_green_only(image);
+    //     image.save("output/keep_green_only.png");
+    // }
+    // {
+    //     sil::Image image{"images/logo.png"};
+    //     black_and_white(image);
+    //     image.save("output/black_and_white.png");
+    // }
+    // {
+    //     sil::Image image{"images/logo.png"};
+    //     negatif(image);
+    //     image.save("output/negatif.png");
+    // }
+    // {
+    //     sil::Image image{300 /*width*/, 200 /*height*/};
+    //     degrade(image);
+    //     image.save("output/degrade.png");
+    // }
+    // {
+    //     sil::Image image{"images/logo.png"};
+    //     negatif(image);
+    //     image.save("output/negatif.png");
+    // }
+    // {
+    //     sil::Image image{"images/logo.png"};
+    //     miroir(image);
+    //     image.save("output/miroir.png");
+    // }
 
-        {
-            sil::Image image{"images/logo.png"};
-            noise_image(image);
-            image.save("output/noise_image.png");
-        }
+    // {
+    //     sil::Image image{"images/logo.png"};
+    //     noise_image(image);
+    //     image.save("output/noise_image.png");
+    // }
 
-        {
-            sil::Image image{"images/logo.png"};
-            rotate_90(image);
-            image.save("output/rotate_90.png");
-        }
+    // {
+    //     sil::Image image{"images/logo.png"};
+    //     rotate_90(image);
+    //     image.save("output/rotate_90.png");
+    // }
 
-        {
-            sil::Image image{"images/logo.png"};
-            RGB_split(image);
-            image.save("output/RGB_split.png");
-        }
+    // {
+    //     sil::Image image{"images/logo.png"};
+    //     RGB_split(image);
+    //     image.save("output/RGB_split.png");
+    // }
 
-        {
-            sil::Image image{"images/photo.jpg"};
-            Luminosite_eclaircir(image);
-             Luminosite_assombrir(image);
-            image.save("output/Luminosite.jpg");
-        }
+    // {
+    //     sil::Image image{"images/photo.jpg"};
+    //     Luminosite_eclaircir(image);
+    //     Luminosite_assombrir(image);
+    //     image.save("output/Luminosite.jpg");
+    // }
 
-        {
-            sil::Image image{"images/photo.jpg"};
-            Luminosite_eclaircir(image);
-            Luminosite_assombrir(image);
-            image.save("output/Luminosite.jpg");
-        }
+    // {
+    //     sil::Image image{"images/photo.jpg"};
+    //     Luminosite_eclaircir(image);
+    //     Luminosite_assombrir(image);
+    //     image.save("output/Luminosite.jpg");
+    // }
 
-        {
-            sil::Image image{500 /*width*/, 500 /*height*/};
-            Disque(image);
-            image.save("output/Disque.jpg");
-        }
+    // {
+    //     sil::Image image{500 /*width*/, 500 /*height*/};
+    //     Disque(image);
+    //     image.save("output/Disque.jpg");
+    // }
+
+    // {
+    //     sil::Image image{500 /*width*/, 500 /*height*/};
+    //     cercle(image);
+    //     image.save("output/cercle.png");
+    // }
+
+    // {
+    //     int square_size = 500;
+    //     sil::Image image{square_size /*width*/, square_size /*height*/};
+
+    //     for (int count = {0}; count < square_size; count++)
+    //     {
+    //         Disque_gif(image, count);
+    //         std::string path = std::format("output/gif_disque/Disque_gif_{}.png", count);
+    //         image.save(path);
+    //     }
+    // }
+
+    // {
+    //     sil::Image image{500 /*width*/, 500 /*height*/};
+    //     Rosace(image);
+    //     image.save("output/Rosace.png");
+    // }
+
+    // {
+    //     sil::Image image{"images/logo.png"};
+    //     Mosaique(image);
+    //     image.save("output/Mosaique.png");
+    // }
+
+    // {
+    //     sil::Image image{"images/logo.png"};
+    //     Mosaique_miroir(image);
+    //     image.save("output/Mosaique_miroir.png");
+    // }
+
+    // {
+    //     sil::Image image{"images/logo.png"};
+    //     Glitch(image);
+    //     image.save("output/Glitch.png");
+    // }
+
+    // {
+    //     sil::Image image{"images/logo.png"};
+    //     Tri_pixels(image);
+    //     image.save("output/Tri_pixels.png");
+    // }
+
+    // {
+    //     sil::Image image{500 /*width*/, 500 /*height*/};
+    //     fractal(image);
+    //     image.save("output/fractal.png");
+    // }
 
     {
         sil::Image image{500 /*width*/, 500 /*height*/};
-        cercle(image);
-        image.save("output/cercle.png");
-    }
-
-    {
-        int square_size = 500;
-        sil::Image image{square_size /*width*/, square_size /*height*/};
-
-        for (int count = {0}; count < square_size; count++)
-        {
-            Disque_gif(image, count);
-            std::string path = std::format("output/gif_disque/Disque_gif_{}.png", count);
-            image.save(path);
-        }
-    }
-
-    {
-        sil::Image image{500 /*width*/, 500 /*height*/};
-        Rosace(image);
-        image.save("output/Rosace.png");
-    }
-
-    {
-        sil::Image image{"images/logo.png"};
-        Mosaique(image);
-        image.save("output/Mosaique.png");
+        degradeLab(image);
+        image.save("output/degradeLab.png");
     }
 }
