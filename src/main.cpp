@@ -693,12 +693,12 @@ void Vortex(sil::Image &image)
     image = image_new;
 }
 
-void Convolutions(sil::Image &image)
+void Convolutions_sharpness(sil::Image &image)
 {
     float convolution_3x3[3][3] = {
-        {1.f / 9.f, 1.f / 9.f, 1.f / 9.f},
-        {1.f / 9.f, 1.f / 9.f, 1.f / 9.f},
-        {1.f / 9.f, 1.f / 9.f, 1.f / 9.f},
+        {0.0, -1.0, 0.0},
+        {-1.0, 5.0, -1.0},
+        {0.0, -1.0, 0.0},
     };
 
     sil::Image image_new{image.width(), image.height()};
@@ -708,23 +708,17 @@ void Convolutions(sil::Image &image)
         {
             if (x >= 1 && x < image.width() - 1 && y >= 1 && y < image.height() - 1)
             {
-                float somme = 0.f;
-
+                glm::vec3 pixel{0.0};
                 for (int x_matrice{-1}; x_matrice <= 1; x_matrice++)
                 {
                     for (int y_matrice{-1}; y_matrice <= 1; y_matrice++)
                     {
-                        auto p = image.pixel(x + x_matrice, y + y_matrice);
 
-                        float gris = (p.r + p.g + p.b) / 3.f;
-
-                        somme = somme + convolution_3x3[x_matrice + 1][y_matrice + 1] * gris;
+                        pixel = pixel + convolution_3x3[x_matrice + 1][y_matrice + 1] * image.pixel(x + x_matrice, y + y_matrice);
                     }
                 }
 
-                image_new.pixel(x, y).r = somme;
-                image_new.pixel(x, y).g = somme;
-                image_new.pixel(x, y).b = somme;
+                image_new.pixel(x, y) = pixel;
             }
             else
             {
@@ -732,10 +726,116 @@ void Convolutions(sil::Image &image)
             }
         }
     }
-    
+
     image = image_new;
 }
 
+void Convolutions_blur(sil::Image &image)
+{
+
+    sil::Image image_new{image.width(), image.height()};
+    for (int x{0}; x < image.width(); x++)
+    {
+        for (int y{0}; y < image.height(); y++)
+        {
+            if (x >= 1 && x < image.width() - 1 && y >= 1 && y < image.height() - 1)
+            {
+
+                glm::vec3 pixel{0.0};
+                for (int x_matrice{-1}; x_matrice <= 1; x_matrice++)
+                {
+                    for (int y_matrice{-1}; y_matrice <= 1; y_matrice++)
+                    {
+
+                        pixel = pixel + image.pixel(x + x_matrice, y + y_matrice);
+                    }
+                }
+
+                image_new.pixel(x, y) = pixel / 9.0f;
+            }
+            else
+            {
+                image_new.pixel(x, y) = image.pixel(x, y);
+            }
+        }
+    }
+
+    image = image_new;
+}
+
+void Convolutions_outline(sil::Image &image)
+{
+    float convolution_3x3[3][3] = {
+        {-1.0, -1.0, -1.0},
+        {-1.0, 8.0, -1.0},
+        {-1.0, -1.0, -1.0},
+    };
+
+    sil::Image image_new{image.width(), image.height()};
+    for (int x{0}; x < image.width(); x++)
+    {
+        for (int y{0}; y < image.height(); y++)
+        {
+            if (x >= 1 && x < image.width() - 1 && y >= 1 && y < image.height() - 1)
+            {
+                glm::vec3 pixel{0.0};
+                for (int x_matrice{-1}; x_matrice <= 1; x_matrice++)
+                {
+                    for (int y_matrice{-1}; y_matrice <= 1; y_matrice++)
+                    {
+
+                        pixel = pixel + convolution_3x3[x_matrice + 1][y_matrice + 1] * image.pixel(x + x_matrice, y + y_matrice);
+                    }
+                }
+
+                image_new.pixel(x, y) = pixel;
+            }
+            else
+            {
+                image_new.pixel(x, y) = image.pixel(x, y);
+            }
+        }
+    }
+
+    image = image_new;
+}
+
+void Convolutions_emboss(sil::Image &image)
+{
+    float convolution_3x3[3][3] = {
+        {-2.0, -1.0, 0.0},
+        {-1.0, 1.0, 1.0},
+        {0.0, 1.0, 2.0},
+    };
+
+    sil::Image image_new{image.width(), image.height()};
+    for (int x{0}; x < image.width(); x++)
+    {
+        for (int y{0}; y < image.height(); y++)
+        {
+            if (x >= 1 && x < image.width() - 1 && y >= 1 && y < image.height() - 1)
+            {
+                glm::vec3 pixel{0.0};
+                for (int x_matrice{-1}; x_matrice <= 1; x_matrice++)
+                {
+                    for (int y_matrice{-1}; y_matrice <= 1; y_matrice++)
+                    {
+
+                        pixel = pixel + convolution_3x3[x_matrice + 1][y_matrice + 1] * image.pixel(x + x_matrice, y + y_matrice);
+                    }
+                }
+
+                image_new.pixel(x, y) = pixel;
+            }
+            else
+            {
+                image_new.pixel(x, y) = image.pixel(x, y);
+            }
+        }
+    }
+
+    image = image_new;
+}
 
 int main()
 {
@@ -905,7 +1005,24 @@ int main()
 
     {
         sil::Image image{"images/logo.png"};
-        Convolutions(image);
+        Convolutions_blur(image);
         image.save("output/Convolutions.png");
+    }
+    {
+        sil::Image image{"images/logo.png"};
+        Convolutions_sharpness(image);
+        image.save("output/Convolutions_sharpness.png");
+    }
+
+    {
+        sil::Image image{"images/logo.png"};
+        Convolutions_outline(image);
+        image.save("output/Convolutions_outline.png");
+    }
+
+    {
+        sil::Image image{"images/logo.png"};
+        Convolutions_emboss(image);
+        image.save("output/Convolutions_emboss.png");
     }
 }
