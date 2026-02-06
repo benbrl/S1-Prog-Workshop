@@ -27,8 +27,8 @@
   - [16. Dégradés dans l'espace de couleur Lab](#16-dégradés-dans-lespace-de-couleur-lab)
   - [17. Tramage](#17-tramage)
   - [18. Normalisation de l'histogramme](#18-normalisation-de-lhistogramme)
-  - [18. Vortex](#18-vortex)
-  - [19. Convolutions](#19-convolutions)
+  - [19. Vortex](#19-vortex)
+  - [20. Convolutions](#20-convolutions)
 - [Merci !](#merci-)
 
 ---
@@ -218,7 +218,7 @@ Pour l’effet glitch, j’utilise des valeurs aléatoires.
 À chaque itération, deux zones rectangulaires sont sélectionnées puis swapé entre elles.
 Les positions, la largeur et la hauteur des rectangles sont générées aléatoirement.
 
-![](./output/glitch.png)
+![](./output/Glitch.png)
 
 ---
 
@@ -231,7 +231,7 @@ Avec l’aide de Roméo, j’ai compris qu’il fallait plutôt récupérer une 
 Je sélectionne une ligne aléatoire de l’image ainsi qu’un segment horizontal de taille aléatoire. Les pixels de ce segment sont stockés dans un vecteur, puis triés grâce à la fonction brightness.
 Une fois le tri effectué, les pixels sont replacés au même endroit dans l’image.
 
-![](./output/tri_pixels.png)
+![](./output/Tri_pixels.png)
 
 ---
 
@@ -305,7 +305,7 @@ Ensuite, lors d’un second parcours, j’applique la formule à chaque pixel af
 
 ![](./output/photo_faible_contraste.png)
 
-## 18. Vortex
+## 19. Vortex
 
 Le calcul le plus important ici est la distance entre le point et le centre.
 
@@ -320,7 +320,7 @@ En changeant le paramètre en mettant `distance * radian`, on obtient ce joli ef
 
 ---
 
-## 19. Convolutions
+## 20. Convolutions
 
 Pour la convolution, j'ai donc utilisé les matrices du site donné.
 Après avoir mis la matrice en place (et compris comment elle fonctionnait), j'ai pu appliquer les différents filtres.
@@ -332,6 +332,9 @@ Après avoir mis la matrice en place (et compris comment elle fonctionnait), j'a
 ![](./output/Convolutions_embosse.png)
 
 **Le fail :**
+
+
+
 ![](./output/Convolutions_fail.png)
 
 ---

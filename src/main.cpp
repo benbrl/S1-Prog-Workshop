@@ -850,11 +850,11 @@ int main()
     //     keep_green_only(image);
     //     image.save("output/keep_green_only.png");
     // }
-    //     {
-    //     sil::Image image{"images/logo.png"};
-    //    keep_red_only(image);
-    //     image.save("output/keep_red_only.png");
-    // }
+        {
+        sil::Image image{"images/photo.jpg"};
+       keep_red_only(image);
+        image.save("output/keep_red_only1.png");
+    }
     // {
     //     sil::Image image{"images/logo.png"};
     //     black_and_white(image);
