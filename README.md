@@ -193,7 +193,7 @@ Je peux dans le code choisir le nombre de cercles que je souhaite.
 
 Pour la mosaïque, je crée une image qui est 5 fois supérieure à la première (ici la variable `nb_repetition`). Puis je parcours la première image et tous les pixels, je les copie sur la nouvelle image. Je le fais en X et en Y, 5 fois en appliquant à chaque nouveau tour un décalage sur ma nouvelle image.
 
-![](./output/mosaique.png)
+![](./output/Mosaique.png)
 
 ### 12.1. Mosaïque miroir
 
