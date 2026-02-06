@@ -1,3 +1,13 @@
+//  ____  _   _ ____  _____ ____
+// / ___|| | | |  _ \| ____|  _ \                      
+// \___ \| | | | |_) |  _| | |_) |
+//  ___) | |_| |  __/| |___|  _ <
+// |____/ \___/|_|  _|_____|_|_\_\_  _   _  ___  ____
+// \ \      / / _ \|  _ \| |/ / ___|| | | |/ _ \|  _ \ 
+//  \ \ /\ / / | | | |_) | ' /\___ \| |_| | | | | |_) |
+//   \ V  V /| |_| |  _ <| . \ ___) |  _  | |_| |  __/
+//    \_/\_/  \___/|_| \_\_|\_\____/|_| |_|\___/|_|
+
 #include <sil/sil.hpp>
 #include "random.hpp"
 #include <iostream>
@@ -5,6 +15,7 @@
 #include <numbers>
 #include <algorithm>
 #include <complex>
+#include <glm/gtx/matrix_transform_2d.hpp>
 
 void keep_green_only(sil::Image &image)
 {
@@ -16,6 +27,15 @@ void keep_green_only(sil::Image &image)
     }
 }
 
+void keep_red_only(sil::Image &image)
+{
+
+    for (glm::vec3 &color : image.pixels())
+    {
+        color.g = 0.f;
+        color.b = 0.f;
+    }
+}
 void swap_channel(sil::Image &image)
 {
     for (glm::vec3 &color : image.pixels())
@@ -459,23 +479,263 @@ void fractal(sil::Image &image)
     }
 }
 
-void degradeLab(sil::Image &image)
+void degradeCouleur(sil::Image &image)
 {
+    float degrade;
     for (int y = 0; y < image.height(); y++)
     {
 
         for (int x = 0; x < image.width(); x++)
         {
-            float t = static_cast<float>(y / image.width());
+            degrade = static_cast<float>(x) / static_cast<float>(image.width());
             glm::vec3 color = glm::mix(
-                glm::vec3(0.0f, 1.0f, 0.0f),
                 glm::vec3(1.0f, 0.0f, 0.0f),
-                t);
+                glm::vec3(0.0f, 1.0f, 0.0f),
+                degrade);
 
             image.pixel(x, y) = color;
         }
     }
 }
+
+struct Lab
+{
+    float L;
+    float a;
+    float b;
+};
+
+// copie depuis le site https://bottosson.github.io/posts/oklab/
+struct RGB
+{
+    float r;
+    float g;
+    float b;
+};
+
+Lab linear_rgb_to_oklab(RGB color)
+{
+    float l = 0.4122214708f * color.r + 0.5363325363f * color.g + 0.0514459929f * color.b;
+    float m = 0.2119034982f * color.r + 0.6806995451f * color.g + 0.1073969566f * color.b;
+    float s = 0.0883024619f * color.r + 0.2817188376f * color.g + 0.6299787005f * color.b;
+
+    float l_ = cbrtf(l);
+    float m_ = cbrtf(m);
+    float s_ = cbrtf(s);
+
+    return {
+        0.2104542553f * l_ + 0.7936177850f * m_ - 0.0040720468f * s_,
+        1.9779984951f * l_ - 2.4285922050f * m_ + 0.4505937099f * s_,
+        0.0259040371f * l_ + 0.7827717662f * m_ - 0.8086757660f * s_,
+    };
+}
+
+RGB oklab_to_linear_rgb(Lab color)
+{
+    float l_ = color.L + 0.3963377774f * color.a + 0.2158037573f * color.b;
+    float m_ = color.L - 0.1055613458f * color.a - 0.0638541728f * color.b;
+    float s_ = color.L - 0.0894841775f * color.a - 1.2914855480f * color.b;
+
+    float l = l_ * l_ * l_;
+    float m = m_ * m_ * m_;
+    float s = s_ * s_ * s_;
+
+    return {
+        +4.0767416621f * l - 3.3077115913f * m + 0.2309699292f * s,
+        -1.2684380046f * l + 2.6097574011f * m - 0.3413193965f * s,
+        -0.0041960863f * l - 0.7034186147f * m + 1.7076147010f * s,
+    };
+}
+
+void degradeOKLAB(sil::Image &image)
+{
+
+    float color_g = random_float(0, 1);
+    float color_b = random_float(0, 1);
+    for (int y = 0; y < image.height(); y++)
+    {
+        for (int x = 0; x < image.width(); x++)
+        {
+            float degrade = static_cast<float>(x) / image.width();
+
+            RGB color = {degrade, color_g, color_b};
+            Lab lab = linear_rgb_to_oklab(color);
+
+            if (color.r <= 0.0031308)
+            {
+                color.r = color.r * 12.92;
+            }
+            else
+            {
+                color.r = 1.055 * std::pow(color.r, 1 / 2.4) - 0.055;
+            }
+
+            if (color.g <= 0.0031308)
+            {
+                color.g = 1.055 * std::pow(color.g, 1 / 2.4) - 0.055;
+            }
+            if (color.b <= 0.0031308)
+            {
+                color.b = 1.055 * std::pow(color.b, 1 / 2.4) - 0.055;
+            }
+            image.pixel(x, y).r = color.r;
+            image.pixel(x, y).g = color.g;
+            image.pixel(x, y).b = color.b;
+        }
+    }
+}
+
+void Tramage(sil::Image &image)
+{
+
+    const int bayer_n = 4;
+    float bayer_matrix_4x4[][bayer_n] = {
+        {-0.5, 0, -0.375, 0.125},
+        {0.25, -0.25, 0.375, -0.125},
+        {-0.3125, 0.1875, -0.4375, 0.0625},
+        {0.4375, -0.0625, 0.3125, -0.1875},
+    };
+
+    for (int y = 0; y < image.height(); y++)
+    {
+        for (int x = 0; x < image.width(); x++)
+        {
+            glm::vec3 orig_color = image.pixel(x, y);
+            glm::vec3 color_result;
+
+            float moyenne = (orig_color.r + orig_color.g + orig_color.b) / 3.0f;
+            float bayer_value = bayer_matrix_4x4[y % bayer_n][x % bayer_n];
+            float output_color = moyenne + bayer_value;
+
+            if (output_color < 0.5f)
+            {
+                color_result = glm::vec3(0.f);
+            }
+            else
+            {
+                color_result = glm::vec3(1.f);
+            }
+            image.pixel(x, y) = color_result;
+        }
+    }
+}
+
+void photo_faible_contraste(sil::Image &image)
+{
+
+    float min_brightness{1};
+    float max_brightness{0};
+    for (int x{0}; x < image.width(); x++)
+    {
+        for (int y{0}; y < image.height(); y++)
+        {
+
+            glm::vec3 color = image.pixel(x, y);
+
+            float current_brightness = color.r * 0.2126f + color.g * 0.7152f + color.b * 0.0722f;
+
+            max_brightness = std::max(max_brightness, current_brightness);
+            min_brightness = std::min(min_brightness, current_brightness);
+        }
+    }
+
+    for (int x{0}; x < image.width(); x++)
+    {
+        for (int y{0}; y < image.height(); y++)
+        {
+
+            glm::vec3 &color = image.pixel(x, y);
+
+            color = (color - min_brightness) / (max_brightness - min_brightness);
+
+            // image.pixel(x, y) = color;
+        }
+    }
+}
+
+glm::vec2 rotated(glm::vec2 point, glm::vec2 center_of_rotation, float angle)
+{
+    return glm::vec2{glm::rotate(glm::mat3{1.f}, angle) * glm::vec3{point - center_of_rotation, 0.f}} + center_of_rotation;
+}
+
+void Vortex(sil::Image &image)
+{
+    glm::vec2 point;
+    glm::vec2 center_of_rotation = glm::vec2(image.width() / 2, image.height() / 2);
+
+    // float angle = 20 * 3.14 / 180;
+
+    float radian = 10;
+
+    sil::Image image_new{image.width(), image.height()};
+
+    for (int x{0}; x < image.width(); x++)
+    {
+        for (int y{0}; y < image.height(); y++)
+        {
+            point = {x, y};
+            float distance = glm::distance(center_of_rotation, point);
+            // float angle = (distance *radian);
+            float angle = (distance / radian);
+            glm::vec2 nvpt = rotated(point, center_of_rotation, angle);
+            if (nvpt.x >= 0 && nvpt.x < image.width() && nvpt.y < image.height() && nvpt.y >= 0)
+            {
+
+                image_new.pixel(x, y) = image.pixel(nvpt.x, nvpt.y);
+            }
+            else
+            {
+                image_new.pixel(x, y) = glm::vec3(0.0f);
+            }
+        }
+    }
+
+    image = image_new;
+}
+
+void Convolutions(sil::Image &image)
+{
+    float convolution_3x3[3][3] = {
+        {1.f / 9.f, 1.f / 9.f, 1.f / 9.f},
+        {1.f / 9.f, 1.f / 9.f, 1.f / 9.f},
+        {1.f / 9.f, 1.f / 9.f, 1.f / 9.f},
+    };
+
+    sil::Image image_new{image.width(), image.height()};
+    for (int x{0}; x < image.width(); x++)
+    {
+        for (int y{0}; y < image.height(); y++)
+        {
+            if (x >= 1 && x < image.width() - 1 && y >= 1 && y < image.height() - 1)
+            {
+                float somme = 0.f;
+
+                for (int x_matrice{-1}; x_matrice <= 1; x_matrice++)
+                {
+                    for (int y_matrice{-1}; y_matrice <= 1; y_matrice++)
+                    {
+                        auto p = image.pixel(x + x_matrice, y + y_matrice);
+
+                        float gris = (p.r + p.g + p.b) / 3.f;
+
+                        somme = somme + convolution_3x3[x_matrice + 1][y_matrice + 1] * gris;
+                    }
+                }
+
+                image_new.pixel(x, y).r = somme;
+                image_new.pixel(x, y).g = somme;
+                image_new.pixel(x, y).b = somme;
+            }
+            else
+            {
+                image_new.pixel(x, y) = image.pixel(x, y);
+            }
+        }
+    }
+    
+    image = image_new;
+}
+
 
 int main()
 {
@@ -484,10 +744,16 @@ int main()
     //     // TODO: modifier l'image
     //     image.save("output/pouet.png");
     // }
+
     // {
     //     sil::Image image{"images/logo.png"};
     //     keep_green_only(image);
     //     image.save("output/keep_green_only.png");
+    // }
+    //     {
+    //     sil::Image image{"images/logo.png"};
+    //    keep_red_only(image);
+    //     image.save("output/keep_red_only.png");
     // }
     // {
     //     sil::Image image{"images/logo.png"};
@@ -607,9 +873,39 @@ int main()
     //     image.save("output/fractal.png");
     // }
 
+    // {
+    //     sil::Image image{500 /*width*/, 500 /*height*/};
+    //     degradeCouleur(image);
+    //     image.save("output/degradeLab.png");
+    // }
+
+    // {
+    //     sil::Image image{500 /*width*/, 500 /*height*/};
+    //     degradeOKLAB(image);
+    //     image.save("output/degradeOKLAB.png");
+    // }
+
+    // {
+    //     sil::Image image{"images/photo.jpg"};
+    //     Tramage(image);
+    //     image.save("output/Tramage.png");
+    // }
+
+    // {
+    //     sil::Image image{"images/photo_faible_contraste.jpg"};
+    //     photo_faible_contraste(image);
+    //     image.save("output/photo_faible_contraste.png");
+    // }
+
+    // {
+    //     sil::Image image{"images/logo.png"};
+    //     Vortex(image);
+    //     image.save("output/Vortex.png");
+    // }
+
     {
-        sil::Image image{500 /*width*/, 500 /*height*/};
-        degradeLab(image);
-        image.save("output/degradeLab.png");
+        sil::Image image{"images/logo.png"};
+        Convolutions(image);
+        image.save("output/Convolutions.png");
     }
 }
